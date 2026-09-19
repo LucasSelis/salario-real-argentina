@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Salario real en Argentina, 2016-2026</title>
+<meta name="description" content="Cuánto poder de compra perdió y recuperó el salario registrado privado frente a la inflación. Datos INDEC vía datos.gob.ar.">
+<style>
+  :root{
+    --bg:#f4f6f9; --card:#ffffff; --ink:#14213d; --soft:#5a6478; --line:#dfe4ec;
+    --blue:#2a6fdb; --red:#c8372d; --green:#178f6b;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --bg:#0f1524; --card:#182036; --ink:#eef2fa; --soft:#a4aec4; --line:#2a3550; --blue:#6aa2ff; --red:#ff7b6e; --green:#3fd0a1; }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:'Segoe UI',system-ui,-apple-system,Roboto,Arial,sans-serif;line-height:1.5}
+  .wrap{max-width:980px;margin:0 auto;padding:36px 20px 60px}
+  .eyebrow{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--soft);font-weight:600}
+  h1{font-size:clamp(28px,5vw,42px);line-height:1.1;margin:8px 0 10px;letter-spacing:-.02em}
+  .lead{color:var(--soft);font-size:17px;max-width:66ch;margin:0 0 26px}
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:22px}
+  .kpi{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px}
+  .kpi .l{font-size:12.5px;color:var(--soft);font-weight:600}
+  .kpi .v{font-size:32px;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums;margin:2px 0}
+  .kpi .s{font-size:13.5px;color:var(--soft)}
+  .neg{color:var(--red)} .pos{color:var(--green)}
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px 18px 14px;margin-bottom:20px}
+  .panel h2{font-size:19px;margin:0 0 4px}
+  .panel .sub{color:var(--soft);font-size:14px;margin:0 0 12px}
+  svg{width:100%;height:auto;display:block;overflow:visible}
+  .ax{fill:var(--soft);font-size:11px;font-variant-numeric:tabular-nums}
+  .grid{stroke:var(--line);stroke-width:1}
+  .legend{display:flex;gap:18px;flex-wrap:wrap;font-size:13px;color:var(--soft);margin:2px 0 8px}
+  .legend i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+  .chips{display:grid;grid-template-columns:repeat(auto-fit,minmax(88px,1fr));gap:8px;margin-top:10px}
+  .chip{border:1px solid var(--line);border-radius:10px;padding:8px 10px;text-align:center;font-size:12px;color:var(--soft)}
+  .chip b{display:block;font-size:15px;font-variant-numeric:tabular-nums}
+  #tip{position:absolute;pointer-events:none;background:var(--ink);color:var(--bg);font-size:12.5px;padding:6px 9px;border-radius:8px;opacity:0;transition:opacity .1s;white-space:nowrap;z-index:5}
+  .story{background:var(--card);border-left:4px solid var(--blue);border-radius:10px;padding:14px 18px;margin:0 0 20px;font-size:16px}
+  .method{font-size:13.5px;color:var(--soft)}
+  .method code{background:var(--bg);border:1px solid var(--line);border-radius:5px;padding:1px 5px}
+  a{color:var(--blue)}
+  #status{font-size:12.5px;color:var(--soft);margin:0 0 14px}
+  .relp{position:relative}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow">Análisis económico &middot; Datos públicos INDEC</div>
+  <h1>¿Cuánto poder de compra perdió el salario argentino?</h1>
+  <p class="lead">Salario registrado del sector privado contra inflación, de diciembre de 2016 a hoy. Todo calculado en el navegador desde la API de datos.gob.ar.</p>
+  <p id="status">Cargando datos&hellip;</p>
+
+  <div class="kpis" id="kpis"></div>
+  <div class="story" id="story"></div>
+
+  <div class="panel relp">
+    <h2>Salario real (dic-2016 = 100)</h2>
+    <p class="sub">Cuánto compra el salario, corregido por inflación. Por debajo de 100, se compra menos que en diciembre de 2016.</p>
+    <svg id="line" viewBox="0 0 900 380" role="img" aria-label="Evolución del salario real"></svg>
+    <div id="tip"></div>
+  </div>
+
+  <div class="panel">
+    <h2>Año por año: inflación vs. salario (dic a dic)</h2>
+    <p class="sub">Variación de diciembre a diciembre. La diferencia entre ambas es lo que ganó o perdió el bolsillo.</p>
+    <div class="legend"><span><i style="background:var(--red)"></i>Inflación</span><span><i style="background:var(--blue)"></i>Salario</span></div>
+    <svg id="bars" viewBox="0 0 900 340" role="img" aria-label="Inflación y salario por año"></svg>
+    <div class="chips" id="chips"></div>
+  </div>
+
+  <div class="panel method">
+    <h2>Método y fuentes</h2>
+    <p>Series del INDEC publicadas en <a href="https://datos.gob.ar/" target="_blank" rel="noopener">datos.gob.ar</a>: IPC Nacional, nivel general (<code>148.3_INIVELNAL_DICI_M_26</code>) e Índice de salarios, empleo registrado del sector privado (<code>149.1_SOR_PRIADO_OCTU_0_25</code>). Ambas se llevan a base dic-2016 = 100 y el salario real es <code>salario / IPC &times; 100</code>.</p>
+    <p>Límites: el índice de salarios cubre solo empleo registrado privado, no informales ni sector público, y el INDEC lo publica con más rezago que el IPC (por eso los últimos meses del IPC no entran). Es un promedio: cada persona vivió otra cosa. Los datos se piden en vivo a la API; si no responde, se usa una copia incluida en la página.</p>
+  </div>
+</div>
+
+<script>
+const FALLBACK = [["2016-12",100,102.89],["2017-01",101.5859,106.34],["2017-02",103.6859,107.69],["2017-03",106.1476,109.26],["2017-04",108.9667,112.93],["2017-05",110.5301,115.18],["2017-06",111.8477,117.23],["2017-07",113.7852,122.8],["2017-08",115.3819,124.55],["2017-09",117.5719,126],["2017-10",119.3528,128.23],["2017-11",120.994,130.04],["2017-12",124.7956,131.01],["2018-01",126.9887,133.25],["2018-02",130.0606,134.31],["2018-03",133.1054,136.23],["2018-04",136.7512,141.01],["2018-05",139.5893,144.47],["2018-06",144.8053,146.47],["2018-07",149.2966,149.94],["2018-08",155.1034,154.2],["2018-09",165.2383,157.82],["2018-10",174.1473,163.86],["2018-11",179.6388,168.06],["2018-12",184.2552,170.85],["2019-01",189.6101,176.91],["2019-02",196.7501,181.76],["2019-03",205.9571,188.26],["2019-04",212.9596414,193.47],["2019-05",219.5691,201.66],["2019-06",225.537,206.99],["2019-07",230.494,215.86],["2019-08",239.6077,221.87],["2019-09",253.7102,227.72],["2019-10",262.0661,236.31],["2019-11",273.2158,242.85],["2019-12",283.4442,246.54],["2020-01",289.8299,267.6],["2020-02",295.666,279.97],["2020-03",305.5515,286.4],["2020-04",310.1243,285.74],["2020-05",314.9087,285.06],["2020-06",321.9738,285.44],["2020-07",328.2014,289.19],["2020-08",337.0632,295.13],["2020-09",346.6207,301.54],["2020-10",359.657,317.66],["2020-11",371.0211,326.04],["2020-12",385.8826,331.26],["2021-01",401.5071,344.61],["2021-02",415.8595,362.33],["2021-03",435.8657,376.68],["2021-04",453.6503,394.54],["2021-05",468.725,408.38],["2021-06",483.6049,415.55],["2021-07",498.0987,437],["2021-08",510.3942,451.64],["2021-09",528.4968,467.91],["2021-10",547.0802,485.29],["2021-11",560.9184,507],["2021-12",582.4575,514.34],["2022-01",605.0317,538.17],["2022-02",633.4341,559.01],["2022-03",676.0566,589.31],["2022-04",716.9399,622.29],["2022-05",753.147,665.66],["2022-06",793.0278,699.36],["2022-07",851.761,737.01],["2022-08",911.1316,797.04],["2022-09",967.3076,843.4],["2022-10",1028.706,888.1],["2022-11",1079.2787,953.34],["2022-12",1134.5875,996.62],["2023-01",1202.979,1042.37],["2023-02",1282.7091,1114.31],["2023-03",1381.1601,1202.08],["2023-04",1497.2147,1284.57],["2023-05",1613.5895,1389.24],["2023-06",1709.6115,1468.48],["2023-07",1818.0838,1626.81],["2023-08",2044.2832,1762.46],["2023-09",2304.9242,1995.58],["2023-10",2496.273,2169.81],["2023-11",2816.0628,2385.55],["2023-12",3533.1922,2648.87],["2024-01",4261.5324,3178.28],["2024-02",4825.7881,3625.42],["2024-03",5357.0929,3987.49],["2024-04",5830.2271,4464.6],["2024-05",6073.7,4807.34],["2024-06",6351.7145,5129.04],["2024-07",6607.7479,5450.78],["2024-08",6883.4412,5725.38],["2024-09",7122.2421,5941.03],["2024-10",7313.9542,6175.77],["2024-11",7491.4314,6378.33],["2024-12",7694.0075,6556.47],["2025-01",7864.1257,6707.3],["2025-02",8052.9927,6862.13],["2025-03",8353.3158,7010.54],["2025-04",8585.6078,7187.95],["2025-05",8714.4871,7329.99],["2025-06",8855.5681,7457.02],["2025-07",9023.973,7619.01],["2025-08",9193.2441,7789.94],["2025-09",9384.0922,7896.9],["2025-10",9603.8623,8061.11],["2025-11",9841.3581,8232.68],["2025-12",10121.3715,8441],["2026-01",10413.0309,8620.98],["2026-02",10714.6255,8755.26],["2026-03",11077.0608,8935.48],["2026-04",11363.0904,9292.93],["2026-05",11607.3937,9478.8],["2026-06",11826.4103,9662.3]];
+const URL_API = "https://apis.datos.gob.ar/series/api/series/?ids=148.3_INIVELNAL_DICI_M_26,149.1_SOR_PRIADO_OCTU_0_25&format=json&limit=1000&start_date=2016-12&sort=asc";
+const nf1 = new Intl.NumberFormat('es-AR',{minimumFractionDigits:1,maximumFractionDigits:1});
+const f1 = x => nf1.format(x);
+const sg = x => (x>0?'+':'')+f1(x)+'%';
+const MES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+const lab = f => MES[+f.slice(5,7)-1]+'-'+f.slice(0,4);
+
+function build(rows){
+  const w0 = rows[0][2];
+  return rows.map(r=>({f:r[0].slice(0,7), ipc:r[1], sal:r[2], real:100*(r[2]/w0)/(r[1]/100)}));
+}
+function stats(d){
+  const by = {}; d.forEach(x=>by[x.f]=x);
+  const last = d[d.length-1];
+  const pk = d.reduce((a,b)=>b.real>a.real?b:a);
+  const tr = d.reduce((a,b)=>b.real<a.real?b:a);
+  const years=[];
+  for(let y=2017;y<=+last.f.slice(0,4);y++){
+    const a=by[(y-1)+'-12'], b=by[y+'-12'] || (y===+last.f.slice(0,4)?last:null);
+    if(!a||!b) continue;
+    const inf=(b.ipc/a.ipc-1)*100, sw=(b.sal/a.sal-1)*100;
+    years.push({y:String(y)+(b.f.slice(5,7)!=='12'?' (hasta '+MES[+b.f.slice(5,7)-1]+')':''), inf, sw, real:((1+sw/100)/(1+inf/100)-1)*100, partial:b.f.slice(5,7)!=='12'});
+  }
+  return {last,pk,tr,years};
+}
+function kpis(s){
+  const k=[
+    ['Hoy ('+lab(s.last.f)+')', f1(s.last.real), sg(s.last.real-100)+' vs dic-2016', s.last.real<100],
+    ['Pico ('+lab(s.pk.f)+')', f1(s.pk.real), 'El mejor momento de la serie', false],
+    ['Piso ('+lab(s.tr.f)+')', f1(s.tr.real), sg((s.tr.real/s.pk.real-1)*100)+' desde el pico', true],
+    ['Recuperación desde el piso', sg((s.last.real/s.tr.real-1)*100), 'Sigue '+f1((1-s.last.real/s.pk.real)*100)+'% por debajo del pico', false]
+  ];
+  document.getElementById('kpis').innerHTML = k.map(x=>`<div class="kpi"><div class="l">${x[0]}</div><div class="v ${x[3]?'neg':'pos'}">${x[1]}</div><div class="s">${x[2]}</div></div>`).join('');
+}
+function story(s){
+  const full = s.years.filter(y=>!y.partial);
+  const worst = full.reduce((a,b)=>b.real<a.real?b:a), best = full.reduce((a,b)=>b.real>a.real?b:a);
+  document.getElementById('story').innerHTML =
+    `El peor año fue <b>${worst.y}</b>: la inflación fue ${f1(worst.inf)}% y el salario subió ${f1(worst.sw)}%, una pérdida real de <b class="neg">${f1(Math.abs(worst.real))}%</b>. El mejor fue <b>${best.y}</b>, con una ganancia real de <b class="pos">${f1(best.real)}%</b>. Desde diciembre de 2016 los precios se multiplicaron por <b>${f1(s.last.ipc/100)}</b> y el salario nominal por <b>${f1(s.last.sal/rows0[0][2])}</b>.`;
+}
+let rows0;
+function lineChart(d,s){
+  const svg=document.getElementById('line'), W=900,H=380,pl=44,pr=16,pt=16,pb=32;
+  const ys=d.map(x=>x.real), lo=Math.floor(Math.min(...ys)/5)*5-5, hi=Math.ceil(Math.max(...ys)/5)*5+5;
+  const X=i=>pl+i*(W-pl-pr)/(d.length-1), Y=v=>pt+(hi-v)*(H-pt-pb)/(hi-lo);
+  let g='';
+  for(let v=lo;v<=hi;v+=5){ g+=`<line class="grid" x1="${pl}" x2="${W-pr}" y1="${Y(v)}" y2="${Y(v)}"/><text class="ax" x="${pl-8}" y="${Y(v)+4}" text-anchor="end">${v}</text>`; }
+  d.forEach((x,i)=>{ if(x.f.slice(5,7)==='01' && (+x.f.slice(0,4))%2===1){ g+=`<text class="ax" x="${X(i)}" y="${H-10}" text-anchor="middle">${x.f.slice(0,4)}</text>`; } });
+  g+=`<line x1="${pl}" x2="${W-pr}" y1="${Y(100)}" y2="${Y(100)}" stroke="var(--soft)" stroke-dasharray="5 5"/><text class="ax" x="${W-pr}" y="${Y(100)-6}" text-anchor="end">dic-2016 = 100</text>`;
+  const path=d.map((x,i)=>(i?'L':'M')+X(i).toFixed(1)+' '+Y(x.real).toFixed(1)).join(' ');
+  g+=`<path d="${path} L ${X(d.length-1)} ${Y(lo)} L ${X(0)} ${Y(lo)} Z" fill="var(--blue)" opacity=".08"/><path d="${path}" fill="none" stroke="var(--blue)" stroke-width="2.6" stroke-linejoin="round"/>`;
+  const idx=f=>d.findIndex(x=>x.f===f);
+  [[s.pk,'Pico',-12],[s.tr,'Piso',20],[s.last,'Hoy',-12]].forEach(([p,t,dy])=>{ const i=idx(p.f); const anchor=i>d.length-8?'end':'middle'; g+=`<circle cx="${X(i)}" cy="${Y(p.real)}" r="5" fill="var(--card)" stroke="var(--ink)" stroke-width="2"/><text x="${X(i)}" y="${Y(p.real)+dy}" text-anchor="${anchor}" font-size="12" font-weight="700" fill="var(--ink)">${t} ${f1(p.real)}</text>`; });
+  g+=`<line id="cur" y1="${pt}" y2="${H-pb}" stroke="var(--soft)" opacity="0"/><circle id="dot" r="4.5" fill="var(--blue)" opacity="0"/>`;
+  svg.innerHTML=g;
+  const tip=document.getElementById('tip'), cur=svg.querySelector('#cur'), dot=svg.querySelector('#dot');
+  svg.addEventListener('mousemove',e=>{
+    const r=svg.getBoundingClientRect(), px=(e.clientX-r.left)/r.width*W;
+    let i=Math.round((px-pl)/((W-pl-pr)/(d.length-1))); i=Math.max(0,Math.min(d.length-1,i));
+    const x=d[i]; cur.setAttribute('x1',X(i)); cur.setAttribute('x2',X(i)); cur.setAttribute('opacity','.5');
+    dot.setAttribute('cx',X(i)); dot.setAttribute('cy',Y(x.real)); dot.setAttribute('opacity','1');
+    tip.innerHTML=`<b>${lab(x.f)}</b> &middot; salario real ${f1(x.real)}`;
+    const pr2=svg.parentElement.getBoundingClientRect();
+    tip.style.left=Math.min(pr2.width-150,Math.max(8,(e.clientX-pr2.left)-60))+'px'; tip.style.top=(e.clientY-pr2.top-42)+'px'; tip.style.opacity=1;
+  });
+  svg.addEventListener('mouseleave',()=>{tip.style.opacity=0;cur.setAttribute('opacity','0');dot.setAttribute('opacity','0');});
+}
+function barChart(s){
+  const svg=document.getElementById('bars'), W=900,H=340,pl=44,pr=10,pt=22,pb=30, ys=s.years;
+  const mx=Math.ceil(Math.max(...ys.map(y=>Math.max(y.inf,y.sw)))/50)*50;
+  const Y=v=>pt+(mx-v)*(H-pt-pb)/mx, band=(W-pl-pr)/ys.length, bw=Math.min(34,band/2-6);
+  let g='';
+  for(let v=0;v<=mx;v+=50){ g+=`<line class="grid" x1="${pl}" x2="${W-pr}" y1="${Y(v)}" y2="${Y(v)}"/><text class="ax" x="${pl-8}" y="${Y(v)+4}" text-anchor="end">${v}%</text>`; }
+  ys.forEach((y,i)=>{
+    const cx=pl+band*i+band/2;
+    g+=`<rect x="${cx-bw-2}" y="${Y(y.inf)}" width="${bw}" height="${Y(0)-Y(y.inf)}" rx="3" fill="var(--red)"/><rect x="${cx+2}" y="${Y(y.sw)}" width="${bw}" height="${Y(0)-Y(y.sw)}" rx="3" fill="var(--blue)"/>`;
+    g+=`<text class="ax" x="${cx-bw/2-2}" y="${Y(y.inf)-5}" text-anchor="middle">${Math.round(y.inf)}</text><text class="ax" x="${cx+bw/2+2}" y="${Y(y.sw)-5}" text-anchor="middle">${Math.round(y.sw)}</text>`;
+    g+=`<text class="ax" x="${cx}" y="${H-8}" text-anchor="middle">${y.partial?y.y.split(' ')[0]+'*':y.y}</text>`;
+  });
+  svg.innerHTML=g;
+  document.getElementById('chips').innerHTML = ys.map(y=>`<div class="chip">${y.partial?y.y.split(' ')[0]+'*':y.y}<b class="${y.real<0?'neg':'pos'}">${sg(y.real)}</b>real</div>`).join('');
+}
+function render(rows,src){
+  rows0=rows; const d=build(rows), s=stats(d);
+  document.getElementById('status').textContent = 'Datos hasta '+lab(s.last.f)+' · fuente: '+src+' · *año en curso, hasta el último mes con dato de salarios';
+  kpis(s); story(s); lineChart(d,s); barChart(s);
+}
+fetch(URL_API).then(r=>{ if(!r.ok) throw 0; return r.json(); })
+ .then(j=>{ const rows=j.data.filter(x=>x[1]!=null && x[2]!=null); if(rows.length<50) throw 0; render(rows,'API datos.gob.ar (en vivo)'); })
+ .catch(()=>render(FALLBACK,'copia incluida (INDEC vía datos.gob.ar)'));
+</script>
+</body>
+</html>
